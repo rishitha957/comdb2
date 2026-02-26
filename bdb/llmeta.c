@@ -9368,8 +9368,10 @@ int bdb_set_table_parameter(void *parent_tran, const char *table,
         logmsg(LOGMSG_ERROR, "cson_output_buffer returned rc %d", rc);
     } else if (buf.used > 2) {
         // JSON data is the first (buf.used) bytes of (buf.mem).
+        // Null-terminate so the blob is a proper C string when read back.
+        ((char *)buf.mem)[buf.used] = '\0';
         bdb_set_table_csonparameters(parent_tran, table, (const char *)buf.mem,
-                                     buf.used); // save to llmeta blob
+                                     buf.used + 1); // save to llmeta blob
     } else {
         bdb_del_table_csonparameters(parent_tran, table);
     }
