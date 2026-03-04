@@ -120,6 +120,12 @@ static void log_all_events(struct reqlogger *logger, struct output *out);
 
 extern int is_stored_proc(struct sqlclntstate*);
 
+
+#define TRACE_CALL(expr) do { \
+    logmsg(LOGMSG_USER, "[CALLTRACE] %s:%d -> %s\n", __func__, __LINE__, #expr); \
+    expr; \
+} while(0);
+
 void sltdbt_get_stats(int *n_reqs, int *l_reqs)
 {
     *n_reqs = norm_reqs;
@@ -2541,12 +2547,12 @@ static void init_clientstats(nodestats_t *entry, int task_len, char *host, int f
 
 static void update_clientstats_cache(nodestats_t *entry) {
     assert(entry->ref >= 0);
-    Pthread_mutex_lock(&clientstats_cache_mtx);
+    TRACE_CALL(Pthread_mutex_lock(&clientstats_cache_mtx));
     listc_maybe_rfl(&clientstats_cache, entry);
     if (!entry->ref) {
         listc_abl(&clientstats_cache, entry);
     }
-    Pthread_mutex_unlock(&clientstats_cache_mtx);
+    TRACE_CALL(Pthread_mutex_unlock(&clientstats_cache_mtx));
 }
 
 static nodestats_t *add_clientstats(unsigned checksum,

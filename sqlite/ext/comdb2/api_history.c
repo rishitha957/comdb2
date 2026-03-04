@@ -18,11 +18,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <unistd.h>
 
 #include "comdb2.h"
 #include "reqlog_int.h"
 #include "sqlite3.h"
 #include "ezsystables.h"
+
+
+#define TRACE_CALL(expr) do { \
+    logmsg(LOGMSG_USER, "[CALLTRACE] %s:%d -> %s\n", __func__, __LINE__, #expr); \
+    expr; \
+} while(0);
 
 sqlite3_module systblApiHistoryModule = {
     .access_flag = CDB2_ALLOW_ALL,
@@ -39,11 +46,11 @@ typedef struct systable_api_history {
 
 static void append_entries(systable_api_history_t **data, int *nrecords, api_history_t *api_history, const char *host, const char *task)
 {
-    acquire_api_history_lock(api_history, 0);
+    TRACE_CALL(acquire_api_history_lock(api_history, 0));
     int num_entries = get_num_api_history_entries(api_history);
     assert(num_entries > -1);
     if (!num_entries) {
-        release_api_history_lock(api_history);
+        TRACE_CALL(release_api_history_lock(api_history));
         return;
     }
 
@@ -60,6 +67,7 @@ static void append_entries(systable_api_history_t **data, int *nrecords, api_his
         buffer[i].host = strdup(host);
         buffer[i].task = strdup(task);
         buffer[i].api_driver_name = strdup(entry->name);
+        logmsg(LOGMSG_USER, "[buffertrace] Adding entry: for host:%s %s:%s\n", host, entry->name, entry->version);
         buffer[i].api_driver_version = strdup(entry->version);
 
         dttz_t dt = (dttz_t){.dttz_sec = entry->last_seen};
@@ -67,15 +75,14 @@ static void append_entries(systable_api_history_t **data, int *nrecords, api_his
     }
 
     *data = buffer;
-    release_api_history_lock(api_history); 
+    TRACE_CALL(release_api_history_lock(api_history)); 
 }
 
 int init_api_history_data(void **data, int *nrecords)
 {
     *nrecords = 0;
     systable_api_history_t *systable = calloc(*nrecords, sizeof(systable_api_history_t));
-    acquire_clientstats_lock(0);
-   
+    TRACE_CALL(acquire_clientstats_lock(0));
     void *curr = NULL;
     unsigned int iter = 0;
     nodestats_t *entry = get_next_clientstats_entry(&curr, &iter);
@@ -83,13 +90,13 @@ int init_api_history_data(void **data, int *nrecords)
     while (entry) {
         assert(entry->rawtotals.api_history);
         Pthread_mutex_lock(&entry->rawtotals.lk);
-        append_entries(&systable, nrecords, entry->rawtotals.api_history, entry->host, entry->task);
+        TRACE_CALL(append_entries(&systable, nrecords, entry->rawtotals.api_history, entry->host, entry->task));
         Pthread_mutex_unlock(&entry->rawtotals.lk);
         entry = get_next_clientstats_entry(&curr, &iter);
     }
 
     *data = systable;
-    release_clientstats_lock();
+    TRACE_CALL(release_clientstats_lock());
     return 0;
 }
 

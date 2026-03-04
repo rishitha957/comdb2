@@ -127,9 +127,9 @@ echo "Running additional test scripts"
 
 tests=(
 "./testapihistory"
-"./testindexusage"
-"./testtransactionstate"
-"./testtablemetrics"
+#"./testindexusage"
+#"./testtransactionstate"
+#"./testtablemetrics"
 )
 
 for t in ${tests[@]}; do

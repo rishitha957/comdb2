@@ -20,10 +20,16 @@
 #include <plhash_glue.h>
 #include <pthread.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "logmsg.h"
 
 #include "api_history.h"
+
+#define TRACE_CALL(expr) do { \
+    logmsg(LOGMSG_USER, "[CALLTRACE] %s:%d -> %s\n", __func__, __LINE__, #expr); \
+    expr; \
+} while(0);
 
 struct api_history {
     hash_t *entries;
