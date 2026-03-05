@@ -46,11 +46,11 @@ typedef struct systable_api_history {
 
 static void append_entries(systable_api_history_t **data, int *nrecords, api_history_t *api_history, const char *host, const char *task)
 {
-    TRACE_CALL(acquire_api_history_lock(api_history, 0));
+    acquire_api_history_lock(api_history, 0);
     int num_entries = get_num_api_history_entries(api_history);
     assert(num_entries > -1);
     if (!num_entries) {
-        TRACE_CALL(release_api_history_lock(api_history));
+        release_api_history_lock(api_history);
         return;
     }
 
@@ -67,7 +67,7 @@ static void append_entries(systable_api_history_t **data, int *nrecords, api_his
         buffer[i].host = strdup(host);
         buffer[i].task = strdup(task);
         buffer[i].api_driver_name = strdup(entry->name);
-        logmsg(LOGMSG_USER, "[buffertrace] Adding entry: for host:%s %s:%s\n", host, entry->name, entry->version);
+        logmsg(LOGMSG_USER, "[buffertrace] Adding entry: for host:%s, task:%s %s:%s\n", host, task, entry->name, entry->version);
         buffer[i].api_driver_version = strdup(entry->version);
 
         dttz_t dt = (dttz_t){.dttz_sec = entry->last_seen};
@@ -75,14 +75,14 @@ static void append_entries(systable_api_history_t **data, int *nrecords, api_his
     }
 
     *data = buffer;
-    TRACE_CALL(release_api_history_lock(api_history)); 
+    release_api_history_lock(api_history); 
 }
 
 int init_api_history_data(void **data, int *nrecords)
 {
     *nrecords = 0;
     systable_api_history_t *systable = calloc(*nrecords, sizeof(systable_api_history_t));
-    TRACE_CALL(acquire_clientstats_lock(0));
+    acquire_clientstats_lock(0);
     void *curr = NULL;
     unsigned int iter = 0;
     nodestats_t *entry = get_next_clientstats_entry(&curr, &iter);
@@ -90,13 +90,13 @@ int init_api_history_data(void **data, int *nrecords)
     while (entry) {
         assert(entry->rawtotals.api_history);
         Pthread_mutex_lock(&entry->rawtotals.lk);
-        TRACE_CALL(append_entries(&systable, nrecords, entry->rawtotals.api_history, entry->host, entry->task));
+        append_entries(&systable, nrecords, entry->rawtotals.api_history, entry->host, entry->task);
         Pthread_mutex_unlock(&entry->rawtotals.lk);
         entry = get_next_clientstats_entry(&curr, &iter);
     }
 
     *data = systable;
-    TRACE_CALL(release_clientstats_lock());
+    release_clientstats_lock();
     return 0;
 }
 

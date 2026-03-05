@@ -2570,7 +2570,7 @@ static nodestats_t *add_clientstats(unsigned checksum,
     entry->checksum = checksum;
     entry->node = node;
 
-    acquire_clientstats_lock(1);
+    TRACE_CALL(acquire_clientstats_lock(1));
     nodestats_t *entry_chk = hash_find(clientstats, entry);
     if (entry_chk) {
         free(entry);
@@ -2616,7 +2616,7 @@ static nodestats_t *add_clientstats(unsigned checksum,
     hash_add(clientstats, entry);
 
 done:
-    release_clientstats_lock();
+    TRACE_CALL(release_clientstats_lock());
     return entry;
 }
 
